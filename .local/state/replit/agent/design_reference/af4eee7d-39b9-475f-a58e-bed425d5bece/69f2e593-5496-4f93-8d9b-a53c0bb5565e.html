@@ -1,0 +1,1415 @@
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishEye - OSINT-Based Phishing Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    borderRadius: {
+                        lg: "var(--radius)",
+                        md: "calc(var(--radius) - 2px)",
+                        sm: "calc(var(--radius) - 4px)",
+                    },
+                    colors: {
+                        background: "var(--background)",
+                        foreground: "var(--foreground)",
+                        card: {
+                            DEFAULT: "var(--card)",
+                            foreground: "var(--card-foreground)",
+                        },
+                        popover: {
+                            DEFAULT: "var(--popover)",
+                            foreground: "var(--popover-foreground)",
+                        },
+                        primary: {
+                            DEFAULT: "var(--primary)",
+                            foreground: "var(--primary-foreground)",
+                        },
+                        secondary: {
+                            DEFAULT: "var(--secondary)",
+                            foreground: "var(--secondary-foreground)",
+                        },
+                        muted: {
+                            DEFAULT: "var(--muted)",
+                            foreground: "var(--muted-foreground)",
+                        },
+                        accent: {
+                            DEFAULT: "var(--accent)",
+                            foreground: "var(--accent-foreground)",
+                        },
+                        destructive: {
+                            DEFAULT: "var(--destructive)",
+                            foreground: "var(--destructive-foreground)",
+                        },
+                        border: "var(--border)",
+                        input: "var(--input)",
+                        ring: "var(--ring)",
+                        warning: "var(--warning)",
+                        success: "var(--success)",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "system-ui", "sans-serif"],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-slow': 'bounce 2s infinite',
+                        'spin-slow': 'spin 3s linear infinite',
+                    }
+                },
+            }
+        };
+    </script>
+    <style>
+        :root {
+            --background: hsl(222 84% 5%);
+            --foreground: hsl(213 31% 91%);
+            --card: hsl(222 84% 5% / 0.8);
+            --card-foreground: hsl(213 31% 91%);
+            --popover: hsl(222 47% 11%);
+            --popover-foreground: hsl(215 20.2% 65.1%);
+            --primary: hsl(217 91% 60%);
+            --primary-foreground: hsl(222 84% 5%);
+            --secondary: hsl(222 47% 11%);
+            --secondary-foreground: hsl(215 20.2% 65.1%);
+            --muted: hsl(215 27.9% 16.9%);
+            --muted-foreground: hsl(215 20.2% 65.1%);
+            --accent: hsl(216 34% 17%);
+            --accent-foreground: hsl(210 40% 98%);
+            --destructive: hsl(0 84% 60%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(215 27.9% 16.9%);
+            --input: hsl(215 27.9% 16.9%);
+            --ring: hsl(216 34% 17%);
+            --warning: hsl(38 92% 50%);
+            --success: hsl(142 71% 45%);
+            --radius: 0.75rem;
+        }
+
+        .light {
+            --background: hsl(0 0% 100%);
+            --foreground: hsl(222 84% 5%);
+            --card: hsl(0 0% 100% / 0.8);
+            --card-foreground: hsl(222 84% 5%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(222 84% 5%);
+            --primary: hsl(217 91% 60%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(210 40% 96%);
+            --secondary-foreground: hsl(222 84% 5%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215.4 16.3% 46.9%);
+            --accent: hsl(210 40% 96%);
+            --accent-foreground: hsl(222 84% 5%);
+            --destructive: hsl(0 84% 60%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(214.3 31.8% 91.4%);
+            --input: hsl(214.3 31.8% 91.4%);
+            --ring: hsl(215 20.2% 65.1%);
+            --warning: hsl(38 92% 50%);
+            --success: hsl(142 71% 45%);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .light .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+        }
+
+        .shimmer {
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255, 255, 255, 0.1) 50%, 
+                transparent 100%);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .risk-meter-bg {
+            background: conic-gradient(
+                from 0deg,
+                hsl(142 71% 45%) 0deg 86.4deg,
+                hsl(38 92% 50%) 86.4deg 216deg,
+                hsl(0 84% 60%) 216deg 360deg
+            );
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body class="min-h-screen bg-background text-foreground font-sans">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass-card border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-primary-foreground"></i>
+                    </div>
+                    <span class="text-xl font-bold">PhishEye</span>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="#analyzer" class="text-foreground hover:text-primary transition-colors">Analyzer</a>
+                    <a href="#history" class="text-muted-foreground hover:text-primary transition-colors">History</a>
+                    <a href="#docs" class="text-muted-foreground hover:text-primary transition-colors">Documentation</a>
+                    <a href="#settings" class="text-muted-foreground hover:text-primary transition-colors">Settings</a>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-accent transition-colors">
+                        <i data-lucide="sun" class="w-5 h-5 dark:hidden"></i>
+                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    </button>
+                    <button class="md:hidden p-2 rounded-lg hover:bg-accent transition-colors">
+                        <i data-lucide="menu" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-16">
+        <!-- @COMPONENT: AnalyzerPage -->
+        <section id="analyzer" class="min-h-screen relative overflow-hidden">
+            <!-- Background Effects -->
+            <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5"></div>
+            <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/10 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-1/4 right-1/4 w-64 h-64 bg-accent/10 rounded-full blur-3xl"></div>
+
+            <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+                <!-- Hero Section -->
+                <div class="text-center mb-16">
+                    <h1 class="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                        Real-Time Threat Detection
+                    </h1>
+                    <p class="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
+                        Analyze any URL using advanced OSINT techniques. Get instant risk assessments powered by multiple security intelligence sources.
+                    </p>
+                    <p class="text-sm text-muted-foreground mb-12">
+                        🔒 We never store your data on our servers—only in your browser.
+                    </p>
+
+                    <!-- URL Input -->
+                    <div class="max-w-2xl mx-auto mb-8">
+                        <div class="glass-card rounded-2xl p-6">
+                            <div class="flex flex-col sm:flex-row gap-4">
+                                <div class="flex-1 relative">
+                                    <input 
+                                        type="url" 
+                                        placeholder="Enter URL to analyze (e.g., https://example.com)"
+                                        class="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                        data-bind="urlInput"
+                                    >
+                                    <div class="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                        <i data-lucide="globe" class="w-5 h-5 text-muted-foreground"></i>
+                                    </div>
+                                </div>
+                                <button 
+                                    onclick="analyzeUrl()"
+                                    class="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary"
+                                    data-event="click:analyzeUrl"
+                                >
+                                    <span class="flex items-center gap-2">
+                                        <i data-lucide="search" class="w-5 h-5"></i>
+                                        Analyze
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Results -->
+                <div id="analysis-results" class="hidden">
+                    <!-- Risk Score Section -->
+                    <div class="grid lg:grid-cols-3 gap-8 mb-12">
+                        <!-- Risk Meter -->
+                        <div class="lg:col-span-1">
+                            <div class="glass-card rounded-2xl p-8 text-center">
+                                <h3 class="text-lg font-semibold mb-6">Risk Assessment</h3>
+                                
+                                <!-- Risk Meter Visualization -->
+                                <div class="relative w-48 h-48 mx-auto mb-6">
+                                    <div class="absolute inset-0 rounded-full risk-meter-bg opacity-20"></div>
+                                    <div class="absolute inset-2 bg-background rounded-full"></div>
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <div class="text-center">
+                                            <div class="text-3xl font-bold text-primary" data-bind="riskScore">0</div>
+                                            <div class="text-sm text-muted-foreground">Risk Score</div>
+                                        </div>
+                                    </div>
+                                    <!-- Animated Arc (would be implemented with canvas/SVG in React) -->
+                                    <div class="absolute inset-0 rounded-full border-4 border-primary" style="clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, 50% 0%)"></div>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-success/20 text-success" data-bind="verdictBadge">
+                                        <i data-lucide="shield-check" class="w-4 h-4 mr-2"></i>
+                                        Safe
+                                    </div>
+                                    <p class="text-sm text-muted-foreground" data-bind="analysisUrl">
+                                        https://example.com
+                                    </p>
+                                    <p class="text-xs text-muted-foreground" data-bind="analysisTime">
+                                        Analyzed at 2024-01-15 14:30:22
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Risk Reasoning -->
+                        <div class="lg:col-span-2">
+                            <div class="glass-card rounded-2xl p-8">
+                                <h3 class="text-lg font-semibold mb-6 flex items-center gap-2">
+                                    <i data-lucide="brain" class="w-5 h-5 text-primary"></i>
+                                    Risk Analysis Reasoning
+                                </h3>
+                                <div class="space-y-3" data-bind="riskReasons">
+                                    <div class="flex items-start gap-3 p-3 rounded-lg bg-success/10">
+                                        <i data-lucide="check" class="w-5 h-5 text-success mt-0.5"></i>
+                                        <span class="text-sm">Domain age over 1 year indicates established presence (-10 points)</span>
+                                    </div>
+                                    <div class="flex items-start gap-3 p-3 rounded-lg bg-success/10">
+                                        <i data-lucide="check" class="w-5 h-5 text-success mt-0.5"></i>
+                                        <span class="text-sm">Valid SSL certificate from trusted authority (-5 points)</span>
+                                    </div>
+                                    <div class="flex items-start gap-3 p-3 rounded-lg bg-warning/10">
+                                        <i data-lucide="alert-triangle" class="w-5 h-5 text-warning mt-0.5"></i>
+                                        <span class="text-sm">Missing SPF/DMARC records detected (+5 points)</span>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="flex flex-wrap gap-3 mt-8">
+                                    <button class="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+                                        <i data-lucide="refresh-cw" class="w-4 h-4 inline mr-2"></i>
+                                        Re-Analyze
+                                    </button>
+                                    <button class="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-medium hover:bg-secondary/90 transition-colors">
+                                        <i data-lucide="save" class="w-4 h-4 inline mr-2"></i>
+                                        Save to History
+                                    </button>
+                                    <button class="px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors">
+                                        <i data-lucide="download" class="w-4 h-4 inline mr-2"></i>
+                                        Export PDF
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Evidence Cards -->
+                    <div class="mb-12">
+                        <h3 class="text-2xl font-semibold mb-8 flex items-center gap-3">
+                            <i data-lucide="database" class="w-6 h-6 text-primary"></i>
+                            OSINT Evidence Sources
+                        </h3>
+
+                        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- VirusTotal Evidence Card -->
+                            <div class="glass-card rounded-xl p-6 hover:bg-accent/10 transition-all duration-200">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="shield" class="w-5 h-5 text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold">VirusTotal</h4>
+                                            <p class="text-xs text-muted-foreground">Multi-engine scan</p>
+                                        </div>
+                                    </div>
+                                    <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success/20 text-success">
+                                        <i data-lucide="check" class="w-3 h-3 mr-1"></i>
+                                        Clean
+                                    </div>
+                                </div>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Detections:</span>
+                                        <span class="font-medium">0/89 engines</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Last Analysis:</span>
+                                        <span class="font-medium">2 hours ago</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Reputation:</span>
+                                        <span class="font-medium text-success">Good</span>
+                                    </div>
+                                </div>
+                                <button class="w-full mt-4 py-2 px-3 text-xs text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                                    View Full Report
+                                </button>
+                            </div>
+
+                            <!-- Google Safe Browsing Evidence Card -->
+                            <div class="glass-card rounded-xl p-6 hover:bg-accent/10 transition-all duration-200">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="search" class="w-5 h-5 text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold">Google Safe Browsing</h4>
+                                            <p class="text-xs text-muted-foreground">Threat detection</p>
+                                        </div>
+                                    </div>
+                                    <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success/20 text-success">
+                                        <i data-lucide="check" class="w-3 h-3 mr-1"></i>
+                                        Safe
+                                    </div>
+                                </div>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Threat Types:</span>
+                                        <span class="font-medium">None detected</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Status:</span>
+                                        <span class="font-medium text-success">Not listed</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Last Check:</span>
+                                        <span class="font-medium">Just now</span>
+                                    </div>
+                                </div>
+                                <button class="w-full mt-4 py-2 px-3 text-xs text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                                    View Details
+                                </button>
+                            </div>
+
+                            <!-- URLScan.io Evidence Card -->
+                            <div class="glass-card rounded-xl p-6 hover:bg-accent/10 transition-all duration-200">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="eye" class="w-5 h-5 text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold">URLScan.io</h4>
+                                            <p class="text-xs text-muted-foreground">Behavioral analysis</p>
+                                        </div>
+                                    </div>
+                                    <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-warning/20 text-warning">
+                                        <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
+                                        Scanning
+                                    </div>
+                                </div>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Overall Score:</span>
+                                        <span class="font-medium">Pending...</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Technologies:</span>
+                                        <span class="font-medium">14 detected</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Redirects:</span>
+                                        <span class="font-medium">None</span>
+                                    </div>
+                                </div>
+                                <button class="w-full mt-4 py-2 px-3 text-xs text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                                    View Screenshot
+                                </button>
+                            </div>
+
+                            <!-- WHOIS/RDAP Evidence Card -->
+                            <div class="glass-card rounded-xl p-6 hover:bg-accent/10 transition-all duration-200">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="info" class="w-5 h-5 text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold">WHOIS/RDAP</h4>
+                                            <p class="text-xs text-muted-foreground">Domain registration</p>
+                                        </div>
+                                    </div>
+                                    <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success/20 text-success">
+                                        <i data-lucide="check" class="w-3 h-3 mr-1"></i>
+                                        Valid
+                                    </div>
+                                </div>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Domain Age:</span>
+                                        <span class="font-medium">2.3 years</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Registrar:</span>
+                                        <span class="font-medium">GoDaddy</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Privacy:</span>
+                                        <span class="font-medium">Protected</span>
+                                    </div>
+                                </div>
+                                <button class="w-full mt-4 py-2 px-3 text-xs text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                                    View WHOIS
+                                </button>
+                            </div>
+
+                            <!-- Certificate Transparency Evidence Card -->
+                            <div class="glass-card rounded-xl p-6 hover:bg-accent/10 transition-all duration-200">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="key" class="w-5 h-5 text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold">Certificate Transparency</h4>
+                                            <p class="text-xs text-muted-foreground">SSL/TLS certificates</p>
+                                        </div>
+                                    </div>
+                                    <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success/20 text-success">
+                                        <i data-lucide="check" class="w-3 h-3 mr-1"></i>
+                                        Trusted
+                                    </div>
+                                </div>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Certificates:</span>
+                                        <span class="font-medium">3 found</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Issuer:</span>
+                                        <span class="font-medium">Let's Encrypt</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Validity:</span>
+                                        <span class="font-medium text-success">90 days</span>
+                                    </div>
+                                </div>
+                                <button class="w-full mt-4 py-2 px-3 text-xs text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                                    View Certificates
+                                </button>
+                            </div>
+
+                            <!-- DNS Analysis Evidence Card -->
+                            <div class="glass-card rounded-xl p-6 hover:bg-accent/10 transition-all duration-200">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="server" class="w-5 h-5 text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold">DNS Analysis</h4>
+                                            <p class="text-xs text-muted-foreground">Infrastructure analysis</p>
+                                        </div>
+                                    </div>
+                                    <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-warning/20 text-warning">
+                                        <i data-lucide="alert-triangle" class="w-3 h-3 mr-1"></i>
+                                        Minor Issues
+                                    </div>
+                                </div>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">A Records:</span>
+                                        <span class="font-medium">2 found</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">MX Records:</span>
+                                        <span class="font-medium">3 found</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">SPF/DMARC:</span>
+                                        <span class="font-medium text-warning">Partial</span>
+                                    </div>
+                                </div>
+                                <button class="w-full mt-4 py-2 px-3 text-xs text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                                    View DNS Records
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State (shown during analysis) -->
+                <div id="loading-state" class="hidden">
+                    <div class="text-center mb-12">
+                        <div class="inline-flex items-center gap-3 px-6 py-3 glass-card rounded-xl">
+                            <div class="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full"></div>
+                            <span class="text-lg font-medium">Analyzing URL with OSINT sources...</span>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- @MAP: sources.map(source => ( -->
+                        <div class="glass-card rounded-xl p-6">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-muted rounded-lg animate-pulse"></div>
+                                <div>
+                                    <div class="w-24 h-4 bg-muted rounded animate-pulse mb-2"></div>
+                                    <div class="w-16 h-3 bg-muted/50 rounded animate-pulse"></div>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="w-full h-3 bg-muted rounded animate-pulse"></div>
+                                <div class="w-3/4 h-3 bg-muted rounded animate-pulse"></div>
+                                <div class="w-1/2 h-3 bg-muted rounded animate-pulse"></div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: AnalyzerPage -->
+
+        <!-- @COMPONENT: HistoryPage -->
+        <section id="history" class="min-h-screen py-20 bg-muted/5">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="mb-12">
+                    <h2 class="text-3xl font-bold mb-4">Analysis History</h2>
+                    <p class="text-muted-foreground">Review your previous URL analyses and export reports.</p>
+                </div>
+
+                <!-- History Controls -->
+                <div class="glass-card rounded-2xl p-6 mb-8">
+                    <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                        <div class="flex flex-col sm:flex-row gap-4 flex-1">
+                            <div class="relative">
+                                <input 
+                                    type="text" 
+                                    placeholder="Search history..."
+                                    class="pl-10 pr-4 py-2 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                >
+                                <i data-lucide="search" class="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 transform -translate-y-1/2"></i>
+                            </div>
+                            <select class="px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                                <option>All Risk Levels</option>
+                                <option>Safe (0-24)</option>
+                                <option>Warning (25-59)</option>
+                                <option>High Risk (60-100)</option>
+                            </select>
+                            <select class="px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                                <option>Last 30 days</option>
+                                <option>Last 7 days</option>
+                                <option>Last 24 hours</option>
+                                <option>All time</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-3">
+                            <button class="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-medium hover:bg-secondary/90 transition-colors">
+                                <i data-lucide="upload" class="w-4 h-4 inline mr-2"></i>
+                                Import
+                            </button>
+                            <button class="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+                                <i data-lucide="download" class="w-4 h-4 inline mr-2"></i>
+                                Export All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Table/Cards -->
+                <div class="space-y-4">
+                    <!-- @MAP: historyEntries.map(entry => ( -->
+                    <div class="glass-card rounded-xl p-6 hover:bg-accent/10 transition-all duration-200">
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-success/20 text-success">
+                                        <i data-lucide="shield-check" class="w-4 h-4 mr-1"></i>
+                                        Safe
+                                    </div>
+                                    <div class="text-2xl font-bold text-primary">15</div>
+                                </div>
+                                <div class="mb-2">
+                                    <a href="#" class="text-foreground hover:text-primary transition-colors font-medium">
+                                        https://github.com/security/example-repo
+                                    </a>
+                                </div>
+                                <div class="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        Jan 15, 2024 at 2:30 PM
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="clock" class="w-4 h-4"></i>
+                                        2.3s analysis time
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="database" class="w-4 h-4"></i>
+                                        6 sources checked
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="p-2 hover:bg-accent rounded-lg transition-colors" title="View Report">
+                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                </button>
+                                <button class="p-2 hover:bg-accent rounded-lg transition-colors" title="Re-analyze">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                </button>
+                                <button class="p-2 hover:bg-accent rounded-lg transition-colors" title="Export PDF">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                </button>
+                                <button class="p-2 hover:bg-destructive/20 text-destructive rounded-lg transition-colors" title="Delete">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card rounded-xl p-6 hover:bg-accent/10 transition-all duration-200">
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-destructive/20 text-destructive">
+                                        <i data-lucide="shield-x" class="w-4 h-4 mr-1"></i>
+                                        High Risk
+                                    </div>
+                                    <div class="text-2xl font-bold text-destructive">85</div>
+                                </div>
+                                <div class="mb-2">
+                                    <a href="#" class="text-foreground hover:text-primary transition-colors font-medium">
+                                        https://suspicious-phishing-site[.]com
+                                    </a>
+                                </div>
+                                <div class="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        Jan 14, 2024 at 11:45 AM
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="clock" class="w-4 h-4"></i>
+                                        4.1s analysis time
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="database" class="w-4 h-4"></i>
+                                        6 sources checked
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="p-2 hover:bg-accent rounded-lg transition-colors" title="View Report">
+                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                </button>
+                                <button class="p-2 hover:bg-accent rounded-lg transition-colors" title="Re-analyze">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                </button>
+                                <button class="p-2 hover:bg-accent rounded-lg transition-colors" title="Export PDF">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                </button>
+                                <button class="p-2 hover:bg-destructive/20 text-destructive rounded-lg transition-colors" title="Delete">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card rounded-xl p-6 hover:bg-accent/10 transition-all duration-200">
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-warning/20 text-warning">
+                                        <i data-lucide="shield-alert" class="w-4 h-4 mr-1"></i>
+                                        Warning
+                                    </div>
+                                    <div class="text-2xl font-bold text-warning">42</div>
+                                </div>
+                                <div class="mb-2">
+                                    <a href="#" class="text-foreground hover:text-primary transition-colors font-medium">
+                                        https://newly-registered-domain.example
+                                    </a>
+                                </div>
+                                <div class="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        Jan 13, 2024 at 4:22 PM
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="clock" class="w-4 h-4"></i>
+                                        3.7s analysis time
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="database" class="w-4 h-4"></i>
+                                        5 sources checked
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="p-2 hover:bg-accent rounded-lg transition-colors" title="View Report">
+                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                </button>
+                                <button class="p-2 hover:bg-accent rounded-lg transition-colors" title="Re-analyze">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                </button>
+                                <button class="p-2 hover:bg-accent rounded-lg transition-colors" title="Export PDF">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                </button>
+                                <button class="p-2 hover:bg-destructive/20 text-destructive rounded-lg transition-colors" title="Delete">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+
+                <!-- Pagination -->
+                <div class="flex items-center justify-between mt-8">
+                    <p class="text-sm text-muted-foreground">
+                        Showing 1-3 of 47 analyses
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <button class="p-2 rounded-lg border border-border hover:bg-accent transition-colors disabled:opacity-50" disabled>
+                            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                        </button>
+                        <button class="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium">1</button>
+                        <button class="px-3 py-2 rounded-lg hover:bg-accent transition-colors text-sm">2</button>
+                        <button class="px-3 py-2 rounded-lg hover:bg-accent transition-colors text-sm">3</button>
+                        <span class="px-2 text-muted-foreground">...</span>
+                        <button class="px-3 py-2 rounded-lg hover:bg-accent transition-colors text-sm">16</button>
+                        <button class="p-2 rounded-lg border border-border hover:bg-accent transition-colors">
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: HistoryPage -->
+
+        <!-- @COMPONENT: DocumentationPage -->
+        <section id="docs" class="min-h-screen py-20">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="mb-12">
+                    <h2 class="text-3xl font-bold mb-4">Documentation</h2>
+                    <p class="text-muted-foreground">Learn how our OSINT-based threat detection works and how to interpret the results.</p>
+                </div>
+
+                <div class="space-y-8">
+                    <!-- Risk Scoring Section -->
+                    <div class="glass-card rounded-2xl p-8">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                            <i data-lucide="calculator" class="w-5 h-5 text-primary"></i>
+                            Risk Scoring Algorithm
+                        </h3>
+                        
+                        <div class="prose prose-invert max-w-none">
+                            <p class="text-muted-foreground mb-6">
+                                Our risk scoring system uses a transparent, deterministic algorithm that combines signals from multiple OSINT sources. 
+                                The score ranges from 0 (safe) to 100 (high risk).
+                            </p>
+
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <div>
+                                    <h4 class="text-lg font-semibold mb-4 text-destructive">Risk Factors (+Points)</h4>
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between items-center p-3 bg-destructive/10 rounded-lg">
+                                            <span>Domain age &lt; 30 days</span>
+                                            <span class="font-bold text-destructive">+20</span>
+                                        </div>
+                                        <div class="flex justify-between items-center p-3 bg-destructive/10 rounded-lg">
+                                            <span>Google Safe Browsing threat match</span>
+                                            <span class="font-bold text-destructive">+35</span>
+                                        </div>
+                                        <div class="flex justify-between items-center p-3 bg-destructive/10 rounded-lg">
+                                            <span>VirusTotal detections ≥ 1</span>
+                                            <span class="font-bold text-destructive">+25</span>
+                                        </div>
+                                        <div class="flex justify-between items-center p-3 bg-destructive/10 rounded-lg">
+                                            <span>URLScan suspicious indicators</span>
+                                            <span class="font-bold text-destructive">+10</span>
+                                        </div>
+                                        <div class="flex justify-between items-center p-3 bg-destructive/10 rounded-lg">
+                                            <span>Typosquatting pattern detected</span>
+                                            <span class="font-bold text-destructive">+10</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <h4 class="text-lg font-semibold mb-4 text-success">Trust Signals (-Points)</h4>
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between items-center p-3 bg-success/10 rounded-lg">
+                                            <span>Domain age ≥ 1 year + clean signals</span>
+                                            <span class="font-bold text-success">-10</span>
+                                        </div>
+                                        <div class="flex justify-between items-center p-3 bg-success/10 rounded-lg">
+                                            <span>Valid DV/OV/EV certificate</span>
+                                            <span class="font-bold text-success">-5</span>
+                                        </div>
+                                        <div class="flex justify-between items-center p-3 bg-success/10 rounded-lg">
+                                            <span>Complete DNS security records</span>
+                                            <span class="font-bold text-success">-3</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 p-4 bg-accent/10 rounded-lg">
+                                <h5 class="font-semibold mb-2">Risk Level Classifications:</h5>
+                                <div class="grid grid-cols-3 gap-4 text-center">
+                                    <div class="p-3 bg-success/20 rounded-lg">
+                                        <div class="font-bold text-success">0-24</div>
+                                        <div class="text-sm">Safe</div>
+                                    </div>
+                                    <div class="p-3 bg-warning/20 rounded-lg">
+                                        <div class="font-bold text-warning">25-59</div>
+                                        <div class="text-sm">Warning</div>
+                                    </div>
+                                    <div class="p-3 bg-destructive/20 rounded-lg">
+                                        <div class="font-bold text-destructive">60-100</div>
+                                        <div class="text-sm">High Risk</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OSINT Sources Section -->
+                    <div class="glass-card rounded-2xl p-8">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                            <i data-lucide="database" class="w-5 h-5 text-primary"></i>
+                            OSINT Sources
+                        </h3>
+
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="p-4 bg-accent/5 rounded-lg">
+                                <h4 class="font-semibold mb-2 flex items-center gap-2">
+                                    <i data-lucide="shield" class="w-4 h-4 text-primary"></i>
+                                    VirusTotal
+                                </h4>
+                                <p class="text-sm text-muted-foreground mb-3">
+                                    Multi-engine malware detection service that analyzes URLs using 80+ antivirus engines and security tools.
+                                </p>
+                                <a href="https://virustotal.com" class="text-xs text-primary hover:underline">virustotal.com →</a>
+                            </div>
+
+                            <div class="p-4 bg-accent/5 rounded-lg">
+                                <h4 class="font-semibold mb-2 flex items-center gap-2">
+                                    <i data-lucide="search" class="w-4 h-4 text-primary"></i>
+                                    Google Safe Browsing
+                                </h4>
+                                <p class="text-sm text-muted-foreground mb-3">
+                                    Google's threat intelligence service that identifies malicious URLs, phishing sites, and malware.
+                                </p>
+                                <a href="https://safebrowsing.google.com" class="text-xs text-primary hover:underline">safebrowsing.google.com →</a>
+                            </div>
+
+                            <div class="p-4 bg-accent/5 rounded-lg">
+                                <h4 class="font-semibold mb-2 flex items-center gap-2">
+                                    <i data-lucide="eye" class="w-4 h-4 text-primary"></i>
+                                    URLScan.io
+                                </h4>
+                                <p class="text-sm text-muted-foreground mb-3">
+                                    Automated website scanner that analyzes page behavior, technologies, and potential threats.
+                                </p>
+                                <a href="https://urlscan.io" class="text-xs text-primary hover:underline">urlscan.io →</a>
+                            </div>
+
+                            <div class="p-4 bg-accent/5 rounded-lg">
+                                <h4 class="font-semibold mb-2 flex items-center gap-2">
+                                    <i data-lucide="key" class="w-4 h-4 text-primary"></i>
+                                    Certificate Transparency
+                                </h4>
+                                <p class="text-sm text-muted-foreground mb-3">
+                                    Public logs of SSL/TLS certificates that help detect suspicious certificate patterns and domain activity.
+                                </p>
+                                <a href="https://crt.sh" class="text-xs text-primary hover:underline">crt.sh →</a>
+                            </div>
+
+                            <div class="p-4 bg-accent/5 rounded-lg">
+                                <h4 class="font-semibold mb-2 flex items-center gap-2">
+                                    <i data-lucide="info" class="w-4 h-4 text-primary"></i>
+                                    WHOIS/RDAP
+                                </h4>
+                                <p class="text-sm text-muted-foreground mb-3">
+                                    Domain registration information including age, registrar, and privacy settings.
+                                </p>
+                                <a href="https://rdap.org" class="text-xs text-primary hover:underline">rdap.org →</a>
+                            </div>
+
+                            <div class="p-4 bg-accent/5 rounded-lg">
+                                <h4 class="font-semibold mb-2 flex items-center gap-2">
+                                    <i data-lucide="server" class="w-4 h-4 text-primary"></i>
+                                    DNS Analysis
+                                </h4>
+                                <p class="text-sm text-muted-foreground mb-3">
+                                    DNS record analysis including security configurations like SPF, DMARC, and infrastructure patterns.
+                                </p>
+                                <a href="https://cloudflare-dns.com" class="text-xs text-primary hover:underline">cloudflare-dns.com →</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Privacy & Limitations -->
+                    <div class="glass-card rounded-2xl p-8">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                            <i data-lucide="shield-check" class="w-5 h-5 text-primary"></i>
+                            Privacy & Limitations
+                        </h3>
+
+                        <div class="space-y-6">
+                            <div>
+                                <h4 class="font-semibold mb-3 text-success">Privacy Protection</h4>
+                                <ul class="space-y-2 text-sm text-muted-foreground">
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 text-success mt-0.5"></i>
+                                        All data is stored locally in your browser only
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 text-success mt-0.5"></i>
+                                        No server-side logging or data persistence
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 text-success mt-0.5"></i>
+                                        API keys are secured server-side using Replit Secrets
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 text-success mt-0.5"></i>
+                                        URLs are analyzed through secure proxy endpoints
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h4 class="font-semibold mb-3 text-warning">Important Limitations</h4>
+                                <ul class="space-y-2 text-sm text-muted-foreground">
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="alert-triangle" class="w-4 h-4 text-warning mt-0.5"></i>
+                                        Results are for informational purposes only and should not be the sole basis for security decisions
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="alert-triangle" class="w-4 h-4 text-warning mt-0.5"></i>
+                                        False positives and negatives are possible with any automated analysis
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="alert-triangle" class="w-4 h-4 text-warning mt-0.5"></i>
+                                        API rate limits may affect analysis completeness during high usage
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="alert-triangle" class="w-4 h-4 text-warning mt-0.5"></i>
+                                        Some sources may require additional verification for suspicious sites
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: DocumentationPage -->
+
+        <!-- @COMPONENT: SettingsPage -->
+        <section id="settings" class="min-h-screen py-20 bg-muted/5">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="mb-12">
+                    <h2 class="text-3xl font-bold mb-4">Settings</h2>
+                    <p class="text-muted-foreground">Customize your PhishEye experience and manage your data.</p>
+                </div>
+
+                <div class="space-y-8">
+                    <!-- Appearance Settings -->
+                    <div class="glass-card rounded-2xl p-8">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                            <i data-lucide="palette" class="w-5 h-5 text-primary"></i>
+                            Appearance
+                        </h3>
+
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium mb-3">Theme</label>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <button class="p-4 border border-border rounded-lg hover:border-primary transition-colors">
+                                        <div class="flex items-center gap-3">
+                                            <i data-lucide="sun" class="w-5 h-5"></i>
+                                            <span>Light</span>
+                                        </div>
+                                    </button>
+                                    <button class="p-4 border-2 border-primary rounded-lg bg-primary/5">
+                                        <div class="flex items-center gap-3">
+                                            <i data-lucide="moon" class="w-5 h-5"></i>
+                                            <span>Dark</span>
+                                        </div>
+                                    </button>
+                                    <button class="p-4 border border-border rounded-lg hover:border-primary transition-colors">
+                                        <div class="flex items-center gap-3">
+                                            <i data-lucide="monitor" class="w-5 h-5"></i>
+                                            <span>System</span>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium mb-3">Animation Preferences</label>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="font-medium">Reduced Motion</div>
+                                        <div class="text-sm text-muted-foreground">Minimize animations for better accessibility</div>
+                                    </div>
+                                    <div class="relative">
+                                        <input type="checkbox" class="sr-only" id="reduced-motion">
+                                        <label for="reduced-motion" class="block w-12 h-6 bg-input rounded-full cursor-pointer">
+                                            <div class="w-5 h-5 bg-foreground rounded-full transition-transform translate-x-0.5 mt-0.5"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Management -->
+                    <div class="glass-card rounded-2xl p-8">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                            <i data-lucide="database" class="w-5 h-5 text-primary"></i>
+                            Data Management
+                        </h3>
+
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium mb-3">History Retention</label>
+                                <select class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <option>Keep last 50 analyses (default)</option>
+                                    <option>Keep last 25 analyses</option>
+                                    <option>Keep last 100 analyses</option>
+                                    <option>Keep all analyses</option>
+                                </select>
+                                <p class="text-xs text-muted-foreground mt-2">
+                                    Older analyses will be automatically removed when the limit is reached.
+                                </p>
+                            </div>
+
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div class="p-4 bg-accent/5 rounded-lg">
+                                    <div class="font-medium mb-2">Current Usage</div>
+                                    <div class="text-2xl font-bold text-primary mb-1">47 analyses</div>
+                                    <div class="text-sm text-muted-foreground">~2.3 MB local storage</div>
+                                </div>
+                                <div class="p-4 bg-accent/5 rounded-lg">
+                                    <div class="font-medium mb-2">Storage Limit</div>
+                                    <div class="text-2xl font-bold text-success mb-1">50 analyses</div>
+                                    <div class="text-sm text-muted-foreground">~2.5 MB available</div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap gap-3">
+                                <button class="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-medium hover:bg-secondary/90 transition-colors">
+                                    <i data-lucide="download" class="w-4 h-4 inline mr-2"></i>
+                                    Export History
+                                </button>
+                                <button class="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-medium hover:bg-secondary/90 transition-colors">
+                                    <i data-lucide="upload" class="w-4 h-4 inline mr-2"></i>
+                                    Import History
+                                </button>
+                                <button class="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg text-sm font-medium hover:bg-destructive/90 transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4 inline mr-2"></i>
+                                    Clear All Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PDF Export Settings -->
+                    <div class="glass-card rounded-2xl p-8">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                            <i data-lucide="file-text" class="w-5 h-5 text-primary"></i>
+                            PDF Export Branding
+                        </h3>
+
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium mb-3">Organization Name</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="Enter organization name (optional)"
+                                    class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                    value="Security Analysis Team"
+                                >
+                                <p class="text-xs text-muted-foreground mt-2">
+                                    This will appear in the PDF report header.
+                                </p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium mb-3">Logo Upload</label>
+                                <div class="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
+                                    <i data-lucide="upload" class="w-8 h-8 text-muted-foreground mx-auto mb-2"></i>
+                                    <p class="text-sm text-muted-foreground mb-2">
+                                        Drop your logo here or click to browse
+                                    </p>
+                                    <p class="text-xs text-muted-foreground">
+                                        PNG, JPG up to 2MB. Recommended: 200x50px
+                                    </p>
+                                    <button class="mt-3 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+                                        Choose File
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="p-4 bg-accent/5 rounded-lg">
+                                <h4 class="font-medium mb-2">Preview</h4>
+                                <div class="border border-border rounded p-3 bg-background">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="text-sm font-medium">Security Analysis Team</div>
+                                        <div class="text-xs text-muted-foreground">Generated by PhishEye</div>
+                                    </div>
+                                    <div class="text-xs text-muted-foreground">
+                                        Risk Assessment Report - example.com
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Settings -->
+                    <div class="glass-card rounded-2xl p-8">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                            <i data-lucide="settings" class="w-5 h-5 text-primary"></i>
+                            Advanced Settings
+                        </h3>
+
+                        <div class="space-y-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium">Automatic Analysis</div>
+                                    <div class="text-sm text-muted-foreground">Automatically analyze URLs when pasted</div>
+                                </div>
+                                <div class="relative">
+                                    <input type="checkbox" class="sr-only" id="auto-analyze" checked>
+                                    <label for="auto-analyze" class="block w-12 h-6 bg-primary rounded-full cursor-pointer">
+                                        <div class="w-5 h-5 bg-primary-foreground rounded-full transition-transform translate-x-6 mt-0.5"></div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium">Sound Notifications</div>
+                                    <div class="text-sm text-muted-foreground">Play sounds for analysis completion</div>
+                                </div>
+                                <div class="relative">
+                                    <input type="checkbox" class="sr-only" id="sound-notifications">
+                                    <label for="sound-notifications" class="block w-12 h-6 bg-input rounded-full cursor-pointer">
+                                        <div class="w-5 h-5 bg-foreground rounded-full transition-transform translate-x-0.5 mt-0.5"></div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium mb-3">Analysis Timeout</label>
+                                <select class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <option>30 seconds (default)</option>
+                                    <option>15 seconds</option>
+                                    <option>60 seconds</option>
+                                    <option>120 seconds</option>
+                                </select>
+                                <p class="text-xs text-muted-foreground mt-2">
+                                    Maximum time to wait for each OSINT source response.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reset Section -->
+                    <div class="glass-card rounded-2xl p-8 border-destructive/20">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center gap-2 text-destructive">
+                            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                            Reset All Settings
+                        </h3>
+
+                        <div class="space-y-4">
+                            <p class="text-muted-foreground">
+                                This will reset all settings to their default values and clear all stored data. This action cannot be undone.
+                            </p>
+                            <button class="px-6 py-3 bg-destructive text-destructive-foreground rounded-lg font-medium hover:bg-destructive/90 transition-colors">
+                                <i data-lucide="rotate-ccw" class="w-4 h-4 inline mr-2"></i>
+                                Reset All Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: SettingsPage -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t bg-muted/5 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                            <i data-lucide="shield-check" class="w-5 h-5 text-primary-foreground"></i>
+                        </div>
+                        <span class="text-xl font-bold">PhishEye</span>
+                    </div>
+                    <p class="text-sm text-muted-foreground">
+                        Advanced OSINT-based threat detection for real-time URL analysis and security intelligence.
+                    </p>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold mb-4">Features</h4>
+                    <ul class="space-y-2 text-sm text-muted-foreground">
+                        <li><a href="#analyzer" class="hover:text-primary transition-colors">URL Analysis</a></li>
+                        <li><a href="#history" class="hover:text-primary transition-colors">Analysis History</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">PDF Reports</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Risk Scoring</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2 text-sm text-muted-foreground">
+                        <li><a href="#docs" class="hover:text-primary transition-colors">Documentation</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">API Reference</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">OSINT Sources</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Security Policy</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold mb-4">Privacy</h4>
+                    <ul class="space-y-2 text-sm text-muted-foreground">
+                        <li><a href="#" class="hover:text-primary transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Terms of Service</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Data Protection</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-border mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-sm text-muted-foreground">
+                    © 2024 PhishEye. All rights reserved. Powered by OSINT intelligence.
+                </p>
+                <div class="flex items-center space-x-4 mt-4 md:mt-0">
+                    <a href="#" class="text-muted-foreground hover:text-primary transition-colors">
+                        <i data-lucide="github" class="w-5 h-5"></i>
+                    </a>
+                    <a href="#" class="text-muted-foreground hover:text-primary transition-colors">
+                        <i data-lucide="twitter" class="w-5 h-5"></i>
+                    </a>
+                    <a href="#" class="text-muted-foreground hover:text-primary transition-colors">
+                        <i data-lucide="linkedin" class="w-5 h-5"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.classList.contains('dark');
+            
+            if (isDark) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Load saved theme
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.className = savedTheme;
+        })();
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Mock URL analysis function
+        function analyzeUrl() {
+            const urlInput = document.querySelector('input[type="url"]');
+            const loadingState = document.getElementById('loading-state');
+            const analysisResults = document.getElementById('analysis-results');
+            
+            if (!urlInput.value.trim()) {
+                // TODO: Show validation error toast
+                return;
+            }
+
+            // Show loading state
+            loadingState.classList.remove('hidden');
+            analysisResults.classList.add('hidden');
+
+            // Simulate analysis delay
+            setTimeout(() => {
+                loadingState.classList.add('hidden');
+                analysisResults.classList.remove('hidden');
+                
+                // TODO: Implement actual API calls to backend
+                // TODO: Update risk score animation
+                // TODO: Populate evidence cards with real data
+                
+                // Simulate risk score animation
+                animateRiskScore(15); // Mock safe score
+            }, 3000);
+        }
+
+        // Mock risk score animation
+        function animateRiskScore(targetScore) {
+            const scoreElement = document.querySelector('[data-bind="riskScore"]');
+            let currentScore = 0;
+            const increment = targetScore / 30; // 30 frames
+            
+            const animation = setInterval(() => {
+                currentScore += increment;
+                scoreElement.textContent = Math.round(currentScore);
+                
+                if (currentScore >= targetScore) {
+                    clearInterval(animation);
+                    scoreElement.textContent = targetScore;
+                }
+            }, 50);
+        }
+
+        // Mock form interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listeners for interactive elements
+            // TODO: Implement form validation
+            // TODO: Add keyboard navigation support
+            // TODO: Implement localStorage history management
+            // TODO: Add PDF export functionality using html2pdf.js
+            
+            console.log('PhishEye mockup loaded successfully');
+        });
+    </script>
+</body>
+</html>

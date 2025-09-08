@@ -1,0 +1,340 @@
+Project Title: OSINT-Based Real-Time Scam & Phishing Website Detection Framework
+Goal: Build a modern, animated, responsive web app that analyzes any URL in real time using multiple OSINT Framework sources, computes a unified Risk Score, persists history in localStorage (no DB), and exports a branded PDF report.
+Important: Do not use PhishTank (they’re not accepting new signups). Replace it with other OSINT sources listed below.
+
+✅ High-Level Requirements
+
+Architecture:
+
+Frontend: React + Vite + TypeScript, Tailwind CSS, shadcn/ui, Framer Motion (for animations), Lucide icons.
+
+Backend (lightweight proxy): Flask or Express (choose one) only to call third-party APIs securely with Replit Secrets. No DB.
+
+State/persistence: localStorage only (no server DB).
+
+Reporting: Client-side PDF export using html2pdf.js or jspdf (with html2canvas for charts).
+
+Charts/visuals: recharts for Risk Meter gauge and mini charts.
+
+OSINT Sources (≥ 6, from osintframework.com) — NO PhishTank:
+
+RDAP/WHOIS – domain age, registrar, statuses (use python-whois or public RDAP).
+
+VirusTotal v3 – URL analysis (multi-engine detections).
+
+urlscan.io – submit & fetch scan summary (headers, tech, screenshots URL if available).
+
+Google Safe Browsing v4 – threat matches for URL.
+
+crt.sh – certificate transparency lookups (historical certs for domain).
+
+DNS over HTTPS (Cloudflare 1.1.1.1 JSON) – A/AAAA/CNAME/MX/TXT for infra hints.
+(Optional bonus: Have I Been Pwned domain search—only if time permits.)
+
+Core Features:
+
+URL input → parallel OSINT checks → unified Risk Score (0–100) with label (Safe/Warning/High Risk).
+
+Evidence Cards per source with status chips, badges, and expandable details.
+
+Risk Meter (donut/gauge) + Reasoning list (why the score).
+
+History: store last 50 analyses in localStorage (URL, timestamp, score, summary).
+
+PDF Export: branded, clean, includes URL, timestamp, score, verdict, evidence summaries, mini charts, and footer disclaimer.
+
+Modern UI: glassmorphism cards, subtle gradients, micro-interactions, smooth transitions, skeleton loaders, pull-to-refresh on mobile.
+
+Non-Functional:
+
+Fully responsive (mobile-first), keyboard accessible, dark/light theme toggle.
+
+Minimal CLS and fast interactions; show retry on failed API calls.
+
+All secrets kept server-side using Replit Secrets.
+
+Code split and lazy-load non-critical views.
+
+🧭 Pages & UX
+
+Landing / Analyzer
+
+Hero with gradient, big input (paste URL), primary CTA “Analyze”.
+
+On submit: show animated skeletons; fade-in Risk Meter, Score, and Evidence Cards.
+
+Buttons: Re-Analyze, Save to History, Export PDF.
+
+Microcopy: “We never store your data on our servers—only in your browser.”
+
+History
+
+Paginated table/card list with URL, date, score badge, verdict.
+
+Actions: View report, Re-run, Delete, Export PDF.
+
+Search & filter by score range/date.
+
+localStorage key: phishEyeHistory:v1.
+
+Documentation
+
+How the score is calculated, what each source checks, limitations, privacy note.
+
+Links to OSINT sources.
+
+Settings
+
+Theme (Dark/Light/System), results retention (max items), export branding (logo/name), “Reset all”.
+
+🧪 Risk Scoring (Deterministic, Transparent)
+
+Base score (0), add up to 100 from signals (cap at 100; minimum 0):
+
+Domain age < 30 days: +20
+
+Registrar privacy + abnormal statuses: +5
+
+GSB threat match: +35
+
+VirusTotal positives ≥ 1: +25 (add +5 if ≥ 5 engines)
+
+urlscan.io suspicious indicators (JS redirects, data URIs, mixed content): +10
+
+DNS TXT w/ SPF/DMARC missing (domain apex): +5
+
+crt.sh shows sudden cert churn (≥ 3 in 7 days): +5
+
+Known brand-like domain (basic typosquatting heuristic): +10
+
+Deductions (signals of trust):
+
+Valid DV/OV/EV cert (non-self-signed): −5
+
+Domain age ≥ 1 year + clean signals: −10
+
+Result labels:
+
+0–24 Safe, 25–59 Warning, 60–100 High Risk
+
+🔌 API Proxy (Backend)
+
+Expose minimal endpoints to the frontend (so keys stay server-side):
+
+POST /api/analyze
+Body: { "url": "https://example[.]com" }
+Returns: {
+  "normalizedUrl": "...",
+  "whoisRdap": {...}, 
+  "virustotal": {...}, 
+  "urlscan": {...}, 
+  "gsb": {...}, 
+  "crtsh": {...}, 
+  "dns": {...},
+  "score": 0-100,
+  "verdict": "Safe|Warning|High Risk",
+  "reasons": [ ...strings ],
+  "errors": { source?: message }
+}
+
+
+Implement robust error handling: timeouts, per-source try/catch, partial results returned with errors map.
+
+Use Replit Secrets for: VIRUSTOTAL_API_KEY, URLSCAN_API_KEY, GSB_API_KEY.
+
+Notes:
+
+VirusTotal: URL report → use scan/analysis IDs if needed (polling).
+
+urlscan: submit, then GET result by uuid; include summary only (no heavy assets).
+
+GSB v4: threatMatches:find for MALWARE, SOCIAL_ENGINEERING, UNWANTED_SOFTWARE, POTENTIALLY_HARMFUL_APPLICATION.
+
+crt.sh: use JSON endpoints (?q=<domain>&output=json).
+
+DoH (Cloudflare): https://cloudflare-dns.com/dns-query?name=<domain>&type=A (set Accept: application/dns-json).
+
+WHOIS/RDAP: try python-whois with fallback to RDAP HTTP if needed.
+
+🎨 UI/Animations (must-haves)
+
+Framer Motion: page transitions, card entrance (spring), button tap/hover, list reordering.
+
+Skeletons & Shimmer while loading evidence cards.
+
+Risk Meter (Recharts) eases from 0 to score on reveal.
+
+Toast notifications (shadcn/ui) for success/failure.
+
+Accessible focus rings, reduced motion support, semantic headings.
+
+Modern aesthetic: soft gradients, glass panels, subtle shadows, 12-column responsive grid, rounded-2xl cards, spacious white space.
+
+💾 localStorage Model
+
+Key: phishEyeHistory:v1
+
+Value: JSON array of entries:
+
+type HistoryEntry = {
+  id: string;                // uuid
+  url: string;
+  date: string;              // ISO
+  score: number;
+  verdict: "Safe"|"Warning"|"High Risk";
+  snapshot: { reasons: string[]; brief: string };
+};
+
+
+On save: keep most recent first, max 50 (delete oldest beyond cap).
+
+Provide import/export history as JSON file (optional).
+
+🧾 PDF Export (client-side)
+
+Library: html2pdf.js or jspdf + html2canvas.
+
+Contents:
+
+Header: App name/logo, URL, timestamp.
+
+Risk Meter + Score + Verdict.
+
+Evidence summary table (per source: status, key findings).
+
+“Reasons for Score” bullet list.
+
+Footer: “This report is generated from public OSINT sources and is for informational purposes only.”
+
+Branding controls: logo upload or text fallback (from Settings).
+
+📁 Replit Project Structure
+/ (root)
+├─ /client  (React + Vite + TS)
+│  ├─ src/
+│  │  ├─ app.tsx, main.tsx, routes, components, hooks, lib
+│  │  ├─ components/ui (shadcn)
+│  │  ├─ features/analyzer, history, settings, docs
+│  │  ├─ styles (Tailwind)
+│  │  └─ utils/pdf.ts
+│  ├─ index.html
+│  ├─ tailwind.config.ts
+│  ├─ shadcn.json
+│  ├─ package.json
+│  └─ vite.config.ts
+├─ /server  (Flask or Express)
+│  ├─ app.py  OR  index.ts
+│  ├─ requirements.txt OR package.json
+│  └─ utils/{rdap.py, vt.py, urlscan.py, gsb.py, crtsh.py, doh.py}
+├─ README.md
+└─ .replit (start both client & server; proxy /api to server)
+
+
+Replit Run:
+
+Use a Procfile or .replit that:
+
+Starts backend on PORT (e.g., 8000).
+
+Starts Vite dev server on 5173; set Vite proxy /api → backend.
+
+For production, serve React build via backend static route.
+
+🧰 Dependencies
+
+Frontend:
+
+react, react-dom, typescript, vite
+tailwindcss, postcss, autoprefixer
+framer-motion
+recharts
+lucide-react
+class-variance-authority, clsx, tailwind-merge
+html2pdf.js (or jspdf + html2canvas)
+zod (basic validation)
+
+
+Backend (choose one):
+
+Flask (Python)
+
+Flask, python-dotenv, requests, tldextract, python-whois
+
+
+Express (Node)
+
+express, axios, dotenv, tldts, whoiser
+
+🧠 Validation & Heuristics
+
+Normalize URL (ensure http/https).
+
+Extract root domain (avoid subdomain-only checks).
+
+Typosquat heuristic: Levenshtein distance against a small brand list (config file).
+
+DNS TXT query to check presence of SPF/DMARC for root domain (signal only; not definitive).
+
+🧪 Acceptance Criteria
+
+Entering a URL runs all sources in parallel, shows animated skeletons, then evidence + score.
+
+History persists across reloads (localStorage).
+
+PDF export produces a clean, branded, single PDF with all sections.
+
+Works on mobile (≤ 375px) and desktop (≥ 1440px).
+
+Dark/light theme toggle persists in localStorage.
+
+No calls are blocked due to missing keys (graceful error cards with retry).
+
+No PhishTank anywhere.
+
+📚 README.md — Required Sections
+
+Project Title & Demo GIF
+
+Overview & Features (screens + gifs of Risk Meter, Evidence Cards, History, PDF Export)
+
+Architecture (diagram: React client → lightweight API proxy → OSINT sources)
+
+OSINT Sources Used (links + short notes)
+
+Setup on Replit
+
+Add Secrets: VIRUSTOTAL_API_KEY, URLSCAN_API_KEY, GSB_API_KEY
+
+Install & Run (client + server)
+
+Scoring Model (table of signals & weights)
+
+Privacy (only browser localStorage; no server persistence)
+
+Limitations (rate limits, false positives, captchas, screenshot embedding limits)
+
+Roadmap (HIBP domain search, ML classifier, batch mode, webhook alerts)
+
+License & Attribution (OSINT sources links)
+
+🧩 Stretch (Optional)
+
+Batch analyze CSV of URLs (client-side) with queued UI.
+
+Shareable report link (compress JSON to URL hash).
+
+Add simple brand-logo similarity hint via favicon/hash comparisons.
+
+📝 Deliverables
+
+Fully working Replit project, ready to fork.
+
+Polished UI with micro-animations and responsive layout.
+
+README.md with screenshots/GIFs and complete setup steps.
+
+No PhishTank anywhere; 6 OSINT sources listed above integrated.
+
+PDF export button on Analyzer and History item view.
+
+All persistence strictly via localStorage.
