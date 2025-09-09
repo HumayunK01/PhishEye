@@ -25,7 +25,7 @@ import {
   Users,
   Database
 } from "lucide-react";
-import { getHistory } from "@/lib/history-manager";
+import { getHistory } from "@/lib/history-manager-db";
 
 interface DashboardStats {
   totalAnalyses: number;
@@ -57,7 +57,7 @@ export default function DashboardPage() {
 
   const { data: historyData } = useQuery({
     queryKey: ['history'],
-    queryFn: getHistory,
+    queryFn: () => getHistory(50, 0), // Get up to 50 recent entries
     staleTime: 30000, // 30 seconds
   });
 
@@ -101,7 +101,7 @@ export default function DashboardPage() {
     }
   }, [historyData]);
 
-  const recentThreats: RecentThreat[] = historyData?.slice(0, 5).map(item => ({
+  const recentThreats: RecentThreat[] = historyData?.slice(0, 10).map(item => ({
     id: item.id,
     url: item.url,
     score: item.score,
@@ -265,7 +265,7 @@ export default function DashboardPage() {
           </motion.div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-8 items-start">
           {/* Quick Actions */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -317,41 +317,44 @@ export default function DashboardPage() {
               
               <TabsContent value="recent" className="space-y-4">
                 <Card className="glass-card">
-                  <CardHeader>
+                  <CardHeader className="pb-4">
                     <CardTitle className="flex items-center gap-2">
                       <Activity className="h-5 w-5" />
                       Recent Analyses
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0">
                     {recentThreats.length > 0 ? (
-                      <div className="space-y-3">
+                      <div className="space-y-3 min-h-[200px]">
                         {recentThreats.map((threat, index) => (
                           <motion.div
                             key={threat.id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className="flex items-center justify-between p-3 rounded-lg border"
+                            className="flex items-center justify-between p-4 rounded-lg border bg-card/50 hover:bg-card/80 transition-colors"
                           >
-                            <div className="flex items-center gap-3">
-                              <div className={`w-2 h-2 rounded-full ${
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
                                 threat.score >= 70 ? 'bg-red-500' : 
                                 threat.score >= 40 ? 'bg-yellow-500' : 'bg-green-500'
                               }`} />
-                              <div>
-                                <p className="font-medium truncate max-w-xs">{threat.url}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {new Date(threat.timestamp).toLocaleDateString()}
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium truncate text-sm">{threat.url}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(threat.timestamp).toLocaleDateString()} at {new Date(threat.timestamp).toLocaleTimeString()}
                                 </p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant={threat.score >= 70 ? 'destructive' : threat.score >= 40 ? 'secondary' : 'default'}>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <Badge 
+                                variant={threat.score >= 70 ? 'destructive' : threat.score >= 40 ? 'secondary' : 'default'}
+                                className="text-xs"
+                              >
                                 {threat.score}/100
                               </Badge>
                               <Link href={`/report?id=${threat.id}`}>
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </Link>

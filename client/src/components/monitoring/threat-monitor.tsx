@@ -280,8 +280,7 @@ export default function ThreatMonitor() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">System Health</p>
                 <p className={`text-lg font-bold ${getSystemHealthColor(stats.systemHealth)}`}>
-                  {stats.systemHealth.toUpperCase()}
-                </p>
+                  {stats.systemHealth.toUpperCase()}</p>
               </div>
               <Shield className="h-8 w-8 text-primary" />
             </div>

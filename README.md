@@ -55,8 +55,8 @@ A comprehensive, modern web application for detecting and analyzing potential sc
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/phish-eye.git
-   cd phish-eye
+   git clone https://github.com/HumayunK01/PhishEye.git
+   cd PhishEye
    ```
 
 2. **Install dependencies**
