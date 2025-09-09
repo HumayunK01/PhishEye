@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ui/theme-provider";
+import { SettingsProvider } from "@/contexts/SettingsContext";
 import Navigation from "@/components/layout/navigation";
 import Footer from "@/components/layout/footer";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -23,7 +24,7 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <ScrollToTop smooth={true} delay={100} />
+      <ScrollToTop smooth={false} delay={0} />
       <Navigation />
       <main className="pt-16 flex-1">
         <Switch>
@@ -51,10 +52,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" storageKey="phisheye-theme">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <SettingsProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </SettingsProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

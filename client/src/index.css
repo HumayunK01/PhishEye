@@ -84,17 +84,6 @@
   --radius: 0.75rem;
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.dark .glass-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
 
 .shimmer {
   background: linear-gradient(90deg, 
@@ -117,6 +106,118 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+  }
+
+  /* Performance optimizations */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Optimize animations */
+  .motion-safe {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+  }
+
+  /* Optimize scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  /* Settings-based styles */
+  :root {
+    --base-font-size: 16px;
+  }
+
+  /* Font size variations */
+  .font-size-small {
+    --base-font-size: 14px;
+  }
+
+  .font-size-medium {
+    --base-font-size: 16px;
+  }
+
+  .font-size-large {
+    --base-font-size: 18px;
+  }
+
+  /* Compact mode */
+  .compact-mode {
+    --spacing-unit: 0.5rem;
+    --border-radius: 0.375rem;
+  }
+
+  .compact-mode .card {
+    padding: 0.75rem;
+  }
+
+  .compact-mode .card-header {
+    padding: 0.75rem 0.75rem 0.5rem 0.75rem;
+  }
+
+  .compact-mode .card-content {
+    padding: 0.5rem 0.75rem 0.75rem 0.75rem;
+  }
+
+  .compact-mode .space-y-4 > * + * {
+    margin-top: 0.5rem;
+  }
+
+  .compact-mode .space-y-6 > * + * {
+    margin-top: 0.75rem;
+  }
+
+  .compact-mode .space-y-8 > * + * {
+    margin-top: 1rem;
+  }
+
+  /* No animations */
+  .no-animations * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Reduced motion */
+  .reduced-motion * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reduced-motion .motion-safe {
+    will-change: auto;
+    transform: none;
+  }
+
+  /* Optimize glass cards */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    transform: translateZ(0);
+  }
+
+  .dark .glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transform: translateZ(0);
   }
 
   /* Custom Scrollbar */

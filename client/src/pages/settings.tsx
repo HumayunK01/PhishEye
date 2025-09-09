@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/hooks/use-theme";
+import { useSettings } from "@/contexts/SettingsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { getHistory, clearHistory } from "@/lib/history-manager";
+import { notificationService } from "@/lib/notification-service";
 import { 
   Palette, 
   Database, 
@@ -39,121 +41,17 @@ import {
   BarChart3
 } from "lucide-react";
 
-interface EnhancedSettings {
-  theme: "light" | "dark" | "system";
-  maxHistoryEntries: number;
-  autoAnalyze: boolean;
-  soundNotifications: boolean;
-  reducedMotion: boolean;
-  analysisTimeout: number;
-  organizationName: string;
-  notifications: {
-    email: boolean;
-    browser: boolean;
-    desktop: boolean;
-    sound: boolean;
-    vibration: boolean;
-  };
-  analysis: {
-    autoStart: boolean;
-    bulkMode: boolean;
-    deepScan: boolean;
-    timeout: number;
-    retryAttempts: number;
-  };
-  security: {
-    dataRetention: number;
-    autoDelete: boolean;
-    encryption: boolean;
-    anonymize: boolean;
-  };
-  appearance: {
-    compactMode: boolean;
-    showAnimations: boolean;
-    fontSize: 'small' | 'medium' | 'large';
-    colorScheme: 'auto' | 'light' | 'dark';
-  };
-}
-
-const defaultSettings: EnhancedSettings = {
-  theme: "dark",
-  maxHistoryEntries: 50,
-  autoAnalyze: true,
-  soundNotifications: false,
-  reducedMotion: false,
-  analysisTimeout: 30,
-  organizationName: "",
-  notifications: {
-    email: false,
-    browser: true,
-    desktop: false,
-    sound: false,
-    vibration: false
-  },
-  analysis: {
-    autoStart: true,
-    bulkMode: false,
-    deepScan: false,
-    timeout: 30,
-    retryAttempts: 3
-  },
-  security: {
-    dataRetention: 30,
-    autoDelete: false,
-    encryption: true,
-    anonymize: false
-  },
-  appearance: {
-    compactMode: false,
-    showAnimations: true,
-    fontSize: 'medium',
-    colorScheme: 'auto'
-  }
-};
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const [settings, setSettings] = useState<EnhancedSettings>(defaultSettings);
+  const { settings, updateSetting, updateNestedSetting, resetSettings, exportSettings, isLoaded } = useSettings();
   const [historyCount, setHistoryCount] = useState(0);
   const [storageSize, setStorageSize] = useState("0");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    loadSettings();
     updateStorageInfo();
-  }, []);
-
-  const loadSettings = () => {
-    try {
-      const saved = localStorage.getItem('phishEyeSettings:v2');
-      if (saved) {
-        const parsedSettings = JSON.parse(saved);
-        setSettings({ ...defaultSettings, ...parsedSettings });
-      }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    }
-  };
-
-  const saveSettings = async (newSettings: EnhancedSettings) => {
-    setIsSaving(true);
-    try {
-      localStorage.setItem('phishEyeSettings:v2', JSON.stringify(newSettings));
-      setSettings(newSettings);
-      toast({
-        title: "Settings Saved",
-        description: "Your preferences have been updated successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Save Failed",
-        description: "Failed to save settings. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  }, [isLoaded]);
 
   const updateStorageInfo = () => {
     const history = getHistory();
@@ -168,27 +66,19 @@ export default function SettingsPage() {
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme as "light" | "dark" | "system");
-    saveSettings({ ...settings, theme: newTheme as "light" | "dark" | "system" });
+    updateSetting('theme', newTheme as "light" | "dark" | "system");
   };
 
-  const handleSettingChange = <K extends keyof EnhancedSettings>(key: K, value: EnhancedSettings[K]) => {
-    const newSettings = { ...settings, [key]: value };
-    saveSettings(newSettings);
+  const handleSettingChange = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
+    updateSetting(key, value);
   };
 
-  const handleNestedSettingChange = <K extends keyof EnhancedSettings>(
+  const handleNestedSettingChange = <K extends keyof typeof settings>(
     category: K, 
-    key: keyof EnhancedSettings[K], 
+    key: keyof typeof settings[K], 
     value: any
   ) => {
-    const newSettings = {
-      ...settings,
-      [category]: {
-        ...settings[category],
-        [key]: value
-      }
-    };
-    saveSettings(newSettings);
+    updateNestedSetting(category, key, value);
   };
 
   const handleClearAllData = () => {
@@ -196,38 +86,27 @@ export default function SettingsPage() {
       localStorage.removeItem('phishEyeHistory:v1');
       localStorage.removeItem('phishEyeSettings:v2');
       localStorage.removeItem('phishEyeTheme');
-      setSettings(defaultSettings);
+      resetSettings();
       setTheme("dark");
       updateStorageInfo();
-      toast({
-        title: "All Data Cleared",
-        description: "Settings have been reset and all data cleared.",
-      });
     }
   };
 
-  const handleExportSettings = () => {
-    const exportData = {
-      settings,
-      history: getHistory(),
-      exportDate: new Date().toISOString(),
-      version: "2.0"
-    };
-
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `phish-eye-backup-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: "Backup Created",
-      description: "Settings and history exported successfully.",
-    });
+  const handleTestNotification = async () => {
+    if (settings.notifications.browser) {
+      await notificationService.showNotification('Test Notification', {
+        body: 'This is a test notification from PhishEye',
+        icon: '/favicon.ico'
+      });
+    }
+    
+    if (settings.notifications.sound) {
+      await notificationService.playSound('success');
+    }
+    
+    if (settings.notifications.vibration) {
+      notificationService.vibrate([200, 100, 200]);
+    }
   };
 
   const handleClearHistory = () => {
@@ -269,7 +148,7 @@ export default function SettingsPage() {
                   Saving...
                 </Badge>
               )}
-              <Button onClick={handleExportSettings} variant="outline" size="sm">
+              <Button onClick={exportSettings} variant="outline" size="sm">
                 <Download className="w-4 h-4 mr-2" />
                 Export
               </Button>
@@ -466,6 +345,15 @@ export default function SettingsPage() {
                       checked={settings.notifications.email}
                       onCheckedChange={(checked) => handleNestedSettingChange('notifications', 'email', checked)}
                     />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex justify-center">
+                    <Button onClick={handleTestNotification} variant="outline" size="sm">
+                      <Bell className="w-4 h-4 mr-2" />
+                      Test Notifications
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -701,7 +589,7 @@ export default function SettingsPage() {
                       <Trash2 className="w-4 h-4 mr-2" />
                       Clear History
                     </Button>
-                    <Button onClick={handleExportSettings} variant="outline" size="sm">
+                    <Button onClick={exportSettings} variant="outline" size="sm">
                       <Download className="w-4 h-4 mr-2" />
                       Export Data
                     </Button>

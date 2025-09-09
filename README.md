@@ -44,6 +44,83 @@ A comprehensive, modern web application for detecting and analyzing potential sc
 - **Accessibility**: Keyboard navigation and screen reader support
 - **Progressive Web App**: Installable with offline capabilities
 
+## 🔌 APIs by Category
+
+### Threat Intelligence
+- **Phishing**
+  - Google Safe Browsing API - Malicious website detection and reputation
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+- **IOC Tools**
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+- **TTPs**
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+- **IBM X-Force Exchange**
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+- **Malware Information Sharing Platform**
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+- **Malware Patrol**
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+- **AlienVault OTX**
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+- **FireHOL IP Lists**
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+- **Maltiverse**
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+- **Malpedia**
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+- **Project Honey Pot**
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+### Domain Name
+- **Whois Records**
+  - RDAP/WHOIS API - Domain registration information lookup service
+
+- **Certificate Search**
+  - Certificate Transparency (crt.sh) - Certificate transparency log search
+
+- **Reputation**
+  - Google Safe Browsing API - Malicious website detection and reputation
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+- **Domain Blacklists**
+  - Google Safe Browsing API - Malicious website detection and reputation
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+- **Typosquatting**
+  - Custom Risk Scoring Algorithm - Pattern detection for suspicious domain names
+
+- **PassiveDNS**
+  - DNS over HTTPS (Cloudflare) - DNS record analysis (A/AAAA/CNAME/MX/TXT records)
+
+- **Discovery**
+  - URLScan.io API - Website scanning and threat analysis
+
+### Malicious File Analysis
+- **Hosted Automated Analysis**
+  - VirusTotal - Multi-engine malware detection and analysis platform
+  - VirusTotal API - Multi-engine malware detection and analysis platform
+
+### Tools
+- **OSINT Automation**
+  - Risk Scoring Algorithm - Custom risk assessment tool for URL analysis
+  - Bulk Analysis Engine - Batch processing tool for multiple URLs
+
+- **Pentesting Recon**
+  - URLScan.io API - Website scanning and threat analysis
+
+- **Overview**
+  - PDF Report Generator - Automated report creation tool
+
 ## 🚀 Quick Start
 
 ### Prerequisites

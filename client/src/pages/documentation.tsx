@@ -76,11 +76,11 @@ export default function DocumentationPage() {
 
   return (
     <section className="min-h-screen py-20" data-testid="documentation-page">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
+          className="mb-12 motion-safe"
         >
           <h2 className="text-3xl font-bold mb-4">Documentation</h2>
           <p className="text-muted-foreground">

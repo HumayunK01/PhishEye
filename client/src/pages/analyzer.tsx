@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -10,7 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
+import { useSettings } from "@/contexts/SettingsContext";
 import { apiRequest } from "@/lib/queryClient";
+import { notificationService } from "@/lib/notification-service";
 import RiskMeter from "@/components/analyzer/risk-meter";
 import EvidenceCard from "@/components/analyzer/evidence-card";
 import LoadingSkeleton from "@/components/analyzer/loading-skeleton";
@@ -22,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function AnalyzerPage() {
   const [, setLocation] = useLocation();
+  const { settings } = useSettings();
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
 
   const form = useForm({
@@ -38,21 +41,44 @@ export default function AnalyzerPage() {
       console.log("Analysis response received:", response);
       return response.json() as Promise<AnalysisResult>;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       console.log("Analysis successful:", data);
       setAnalysisResult(data);
+      
+      // Show toast notification
       toast({
         title: "Analysis Complete",
         description: `Risk score: ${data.score}/100 - ${data.verdict}`,
       });
+
+      // Show browser notification if enabled
+      if (settings.notifications.browser) {
+        await notificationService.notifyThreatDetected(data.score, data.normalizedUrl, data.verdict);
+      }
+
+      // Play sound if enabled
+      if (settings.notifications.sound) {
+        const soundType = data.score >= 70 ? 'error' : data.score >= 40 ? 'warning' : 'success';
+        await notificationService.playSound(soundType);
+      }
+
+      // Vibrate if enabled
+      if (settings.notifications.vibration) {
+        notificationService.vibrate([200, 100, 200]);
+      }
     },
-    onError: (error) => {
+    onError: async (error) => {
       console.error("Analysis failed:", error);
       toast({
         title: "Analysis Failed",
         description: error.message,
         variant: "destructive",
       });
+
+      // Show error notification if enabled
+      if (settings.notifications.browser) {
+        await notificationService.notifyError(error.message);
+      }
     },
   });
 
@@ -62,6 +88,16 @@ export default function AnalyzerPage() {
     console.log("Form errors:", form.formState.errors);
     analysisMutation.mutate(data);
   };
+
+  // Auto-start analysis if enabled
+  useEffect(() => {
+    if (settings.analysis.autoStart && form.getValues('url') && !analysisResult) {
+      const url = form.getValues('url');
+      if (url && url.trim()) {
+        analysisMutation.mutate({ url: url.trim() });
+      }
+    }
+  }, [settings.analysis.autoStart, form.getValues('url')]);
 
   const handleSaveToHistory = () => {
     if (analysisResult) {
@@ -131,7 +167,7 @@ export default function AnalyzerPage() {
 
           {/* Analysis Tabs */}
           <div className="max-w-4xl mx-auto mb-8">
-            <Tabs defaultValue="single" className="w-full">
+            <Tabs defaultValue={settings.analysis.bulkMode ? "bulk" : "single"} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="single" className="flex items-center gap-2">
                   <Search className="w-4 h-4" />
