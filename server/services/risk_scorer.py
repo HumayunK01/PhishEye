@@ -20,6 +20,16 @@ class RiskScorer:
         sources = analysis_data.get('sources', {})
         domain = analysis_data.get('domain', '')
         
+        # CRITICAL: Check for domain existence and basic infrastructure first
+        domain_exists, existence_score, existence_reasons = self._analyze_domain_existence(sources, domain)
+        score += existence_score
+        reasons.extend(existence_reasons)
+        
+        # If domain doesn't exist but looks suspicious, heavily penalize
+        if not domain_exists and self._is_suspicious_domain_pattern(domain):
+            score += 40
+            reasons.append("Suspicious domain pattern for non-existent domain (+40 points)")
+        
         # WHOIS/RDAP Analysis
         whois_data = sources.get('whoisRdap', {}).get('data', {})
         if whois_data:
@@ -102,6 +112,105 @@ class RiskScorer:
                 reasons.append("Domain privacy protection with unusual status (+5 points)")
         
         return score, reasons
+    
+    def _analyze_domain_existence(self, sources, domain):
+        """Analyze if domain exists and has basic infrastructure"""
+        score = 0
+        reasons = []
+        domain_exists = True
+        
+        # Check WHOIS data for domain existence
+        whois_data = sources.get('whoisRdap', {})
+        if whois_data.get('error') or not whois_data.get('data'):
+            domain_exists = False
+            score += 30
+            reasons.append("Domain does not exist in WHOIS database (+30 points)")
+        
+        # Check URLScan for DNS resolution
+        urlscan_data = sources.get('urlscan', {})
+        if urlscan_data.get('error') or 'DNS Error' in str(urlscan_data.get('data', {}).get('status', '')):
+            domain_exists = False
+            score += 25
+            reasons.append("DNS resolution failed - domain cannot be reached (+25 points)")
+        
+        # Check DNS analysis for A records
+        dns_data = sources.get('dnsAnalysis', {})
+        if dns_data.get('data', {}).get('a_records', 0) == 0:
+            domain_exists = False
+            score += 20
+            reasons.append("No A records found - domain has no IP address (+20 points)")
+        
+        # Check for certificates
+        ct_data = sources.get('certificateTransparency', {})
+        if ct_data.get('data', {}).get('total_certificates', 0) == 0:
+            score += 10
+            reasons.append("No SSL certificates found (+10 points)")
+        
+        return domain_exists, score, reasons
+    
+    def _is_suspicious_domain_pattern(self, domain):
+        """Check if domain has suspicious patterns even if it doesn't exist"""
+        if not domain:
+            return False
+        
+        domain_lower = domain.lower()
+        
+        # Check for brand impersonation patterns
+        suspicious_patterns = [
+            # Security/verification patterns
+            r'.*security.*verification.*',
+            r'.*account.*update.*',
+            r'.*urgent.*action.*',
+            r'.*suspicious.*activity.*',
+            r'.*verify.*identity.*',
+            r'.*immediate.*action.*',
+            r'.*account.*suspended.*',
+            r'.*password.*reset.*',
+            r'.*login.*required.*',
+            r'.*verification.*required.*',
+            
+            # Brand + action patterns
+            r'paypal.*security.*',
+            r'amazon.*account.*',
+            r'apple.*id.*',
+            r'microsoft.*security.*',
+            r'google.*account.*',
+            r'facebook.*security.*',
+            r'bank.*security.*',
+            r'visa.*verification.*',
+            r'mastercard.*security.*',
+            
+            # Suspicious TLD patterns
+            r'.*\.tk$',
+            r'.*\.ml$',
+            r'.*\.ga$',
+            r'.*\.cf$',
+            r'.*\.click$',
+            r'.*\.download$',
+            r'.*\.online$',
+            r'.*\.site$',
+            r'.*\.website$',
+            r'.*\.top$',
+            r'.*\.xyz$',
+        ]
+        
+        # Check against patterns
+        for pattern in suspicious_patterns:
+            if re.match(pattern, domain_lower):
+                return True
+        
+        # Check for excessive hyphens (common in phishing domains)
+        if domain_lower.count('-') >= 3:
+            return True
+        
+        # Check for number substitutions in brand names
+        for brand in self.known_brands:
+            if brand in domain_lower:
+                # Check for common number substitutions
+                if any(char in domain_lower for char in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']):
+                    return True
+        
+        return False
     
     def _analyze_virustotal_risk(self, vt_data):
         """Analyze VirusTotal results for risk factors"""

@@ -10,6 +10,41 @@ export interface RiskFactor {
 
 export const RISK_FACTORS: RiskFactor[] = [
   {
+    id: 'domain_nonexistent',
+    name: 'Domain Does Not Exist',
+    description: 'Domain not found in WHOIS database',
+    points: 30,
+    category: 'risk'
+  },
+  {
+    id: 'dns_resolution_failed',
+    name: 'DNS Resolution Failed',
+    description: 'Domain cannot be resolved to an IP address',
+    points: 25,
+    category: 'risk'
+  },
+  {
+    id: 'no_a_records',
+    name: 'No A Records',
+    description: 'Domain has no A records (no IP address)',
+    points: 20,
+    category: 'risk'
+  },
+  {
+    id: 'suspicious_pattern_nonexistent',
+    name: 'Suspicious Pattern (Non-existent)',
+    description: 'Suspicious domain pattern for non-existent domain',
+    points: 40,
+    category: 'risk'
+  },
+  {
+    id: 'no_ssl_certificates',
+    name: 'No SSL Certificates',
+    description: 'No SSL certificates found for domain',
+    points: 10,
+    category: 'risk'
+  },
+  {
     id: 'domain_age_young',
     name: 'Young Domain',
     description: 'Domain registered less than 30 days ago',
@@ -197,6 +232,75 @@ export function detectTyposquatting(domain: string): boolean {
       )
     );
   });
+}
+
+export function detectSuspiciousDomainPattern(domain: string): boolean {
+  if (!domain) return false;
+  
+  const domainLower = domain.toLowerCase();
+  
+  // Check for brand impersonation patterns
+  const suspiciousPatterns = [
+    // Security/verification patterns
+    /.*security.*verification.*/,
+    /.*account.*update.*/,
+    /.*urgent.*action.*/,
+    /.*suspicious.*activity.*/,
+    /.*verify.*identity.*/,
+    /.*immediate.*action.*/,
+    /.*account.*suspended.*/,
+    /.*password.*reset.*/,
+    /.*login.*required.*/,
+    /.*verification.*required.*/,
+    
+    // Brand + action patterns
+    /paypal.*security.*/,
+    /amazon.*account.*/,
+    /apple.*id.*/,
+    /microsoft.*security.*/,
+    /google.*account.*/,
+    /facebook.*security.*/,
+    /bank.*security.*/,
+    /visa.*verification.*/,
+    /mastercard.*security.*/,
+    
+    // Suspicious TLD patterns
+    /.*\.tk$/,
+    /.*\.ml$/,
+    /.*\.ga$/,
+    /.*\.cf$/,
+    /.*\.click$/,
+    /.*\.download$/,
+    /.*\.online$/,
+    /.*\.site$/,
+    /.*\.website$/,
+    /.*\.top$/,
+    /.*\.xyz$/,
+  ];
+  
+  // Check against patterns
+  for (const pattern of suspiciousPatterns) {
+    if (pattern.test(domainLower)) {
+      return true;
+    }
+  }
+  
+  // Check for excessive hyphens (common in phishing domains)
+  if (domainLower.split('-').length >= 4) {
+    return true;
+  }
+  
+  // Check for number substitutions in brand names
+  for (const brand of KNOWN_BRANDS) {
+    if (domainLower.includes(brand)) {
+      // Check for common number substitutions
+      if (/[0-9]/.test(domainLower)) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
 }
 
 export function formatRiskReasons(reasons: string[]): string[] {
