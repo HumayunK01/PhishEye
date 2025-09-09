@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { historyEntries, type HistoryEntry, type NewHistoryEntry } from "@shared/db-schema";
+import { historyEntries, type HistoryEntry, type NewHistoryEntry } from "../../shared/db-schema";
 import { eq, desc, and, gte, lte } from "drizzle-orm";
 import { config } from "dotenv";
 import { resolve } from "path";
@@ -133,7 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const entries = await HistoryService.getEntries(limit, offset);
       res.json(entries);
     } else if (req.method === 'POST') {
-      const { historyEntrySchema } = await import("@shared/schema");
+      const { historyEntrySchema } = await import("../../shared/schema");
       const validatedData = historyEntrySchema.parse(req.body);
       
       // Convert date string to Date object

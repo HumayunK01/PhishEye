@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { historyEntries, type HistoryEntry, type NewHistoryEntry } from "@shared/db-schema";
+import { historyEntries, type HistoryEntry, type NewHistoryEntry } from "../../shared/db-schema";
 import { eq } from "drizzle-orm";
 import { config } from "dotenv";
 import { resolve } from "path";
