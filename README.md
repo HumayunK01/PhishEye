@@ -4,7 +4,7 @@
 
 A modern web application for detecting and analyzing potential scam and phishing websites using advanced OSINT (Open Source Intelligence) techniques.
 
-![PhishEye Preview](public/preview.png)
+![PhishEye Preview](client/public/preview.png)
 
 ## ✨ Features
 
