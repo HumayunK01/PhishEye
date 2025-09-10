@@ -33,7 +33,7 @@ export interface Settings {
     compactMode: boolean;
     showAnimations: boolean;
     fontSize: 'small' | 'medium' | 'large';
-    colorScheme: 'auto' | 'light' | 'dark';
+    reducedMotion: boolean;
   };
 }
 
@@ -69,7 +69,7 @@ const defaultSettings: Settings = {
     compactMode: false,
     showAnimations: true,
     fontSize: 'medium',
-    colorScheme: 'auto'
+    reducedMotion: false
   }
 };
 
@@ -153,13 +153,9 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const applyAppearanceSettings = (appearance: Settings['appearance']) => {
     const root = document.documentElement;
     
-    // Font size
-    const fontSizeMap = {
-      small: '14px',
-      medium: '16px',
-      large: '18px'
-    };
-    root.style.setProperty('--base-font-size', fontSizeMap[appearance.fontSize]);
+    // Font size - apply CSS classes
+    root.classList.remove('font-size-small', 'font-size-medium', 'font-size-large');
+    root.classList.add(`font-size-${appearance.fontSize}`);
     
     // Compact mode
     if (appearance.compactMode) {
@@ -189,7 +185,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       localStorage.setItem('phishEyeSettings:v2', JSON.stringify(newSettings));
       setSettings(newSettings);
       
-      // Apply appearance settings immediately
+      // Apply theme and appearance settings immediately
+      applyTheme(newSettings.theme);
       applyAppearanceSettings(newSettings.appearance);
       
       toast({
@@ -225,10 +222,13 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     const newSettings = {
       ...settings,
       [category]: {
-        ...settings[category],
+        ...(settings[category] as any),
         [key]: value
       }
     };
+    
+    // No special handling needed for appearance changes
+    
     saveSettings(newSettings);
   };
 

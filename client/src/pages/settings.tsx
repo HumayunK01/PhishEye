@@ -209,11 +209,14 @@ export default function SettingsPage() {
                         <SelectItem value="system">
                           <div className="flex items-center gap-2">
                             <Monitor className="w-4 h-4" />
-                            System
+                            System (Follow OS)
                           </div>
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Choose your preferred color theme
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -226,11 +229,14 @@ export default function SettingsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="small">Small</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="large">Large</SelectItem>
+                        <SelectItem value="small">Small (14px)</SelectItem>
+                        <SelectItem value="medium">Medium (16px)</SelectItem>
+                        <SelectItem value="large">Large (18px)</SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Adjust text size for better readability
+                    </p>
                   </div>
                 </div>
 
@@ -271,8 +277,8 @@ export default function SettingsPage() {
                       </p>
                     </div>
                     <Switch
-                      checked={settings.reducedMotion}
-                      onCheckedChange={(checked) => handleSettingChange('reducedMotion', checked)}
+                      checked={settings.appearance.reducedMotion}
+                      onCheckedChange={(checked) => handleNestedSettingChange('appearance', 'reducedMotion', checked)}
                     />
                   </div>
                 </div>

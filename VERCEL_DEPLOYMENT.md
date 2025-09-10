@@ -1,4 +1,4 @@
-# Vercel Deployment Guide for ScamSentinel
+# Vercel Deployment Guide for PhishEye
 
 ## Prerequisites
 

@@ -54,6 +54,7 @@ export default function DashboardPage() {
     recentActivity: 0,
     threatLevel: 'low'
   });
+  const [showAllRecent, setShowAllRecent] = useState(false);
 
   const { data: historyData } = useQuery({
     queryKey: ['history'],
@@ -109,6 +110,8 @@ export default function DashboardPage() {
     timestamp: item.date,
     source: 'OSINT Analysis'
   })) || [];
+
+  const displayedThreats = showAllRecent ? recentThreats : recentThreats.slice(0, 3);
 
   const quickActions = [
     {
@@ -324,9 +327,9 @@ export default function DashboardPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    {recentThreats.length > 0 ? (
+                    {displayedThreats.length > 0 ? (
                       <div className="space-y-3 min-h-[200px]">
-                        {recentThreats.map((threat, index) => (
+                        {displayedThreats.map((threat, index) => (
                           <motion.div
                             key={threat.id}
                             initial={{ opacity: 0, y: 10 }}
@@ -361,6 +364,28 @@ export default function DashboardPage() {
                             </div>
                           </motion.div>
                         ))}
+                        {recentThreats.length > 3 && (
+                          <div className="flex justify-center pt-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowAllRecent(!showAllRecent)}
+                              className="flex items-center gap-2"
+                            >
+                              {showAllRecent ? (
+                                <>
+                                  View Less
+                                  <Activity className="h-4 w-4" />
+                                </>
+                              ) : (
+                                <>
+                                  View More ({recentThreats.length - 3} more)
+                                  <Activity className="h-4 w-4" />
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">

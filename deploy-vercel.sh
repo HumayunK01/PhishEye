@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Deploying ScamSentinel to Vercel..."
+echo "🚀 Deploying PhishEye to Vercel..."
 
 # Check if Vercel CLI is installed
 if ! command -v vercel &> /dev/null; then
