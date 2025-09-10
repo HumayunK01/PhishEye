@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { useTheme } from '@/hooks/use-theme';
 import { toast } from '@/hooks/use-toast';
 
 export interface Settings {
@@ -103,7 +102,6 @@ interface SettingsProviderProps {
 }
 
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
-  const { setTheme } = useTheme();
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -118,7 +116,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
           setSettings(mergedSettings);
           
           // Apply theme immediately
-          setTheme(mergedSettings.theme);
+          applyTheme(mergedSettings.theme);
           
           // Apply appearance settings
           applyAppearanceSettings(mergedSettings.appearance);
@@ -136,7 +134,20 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     };
 
     loadSettings();
-  }, [setTheme]);
+  }, []);
+
+  // Apply theme to DOM
+  const applyTheme = (theme: Settings['theme']) => {
+    const root = document.documentElement;
+    root.classList.remove("light", "dark");
+    
+    if (theme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(theme);
+    }
+  };
 
   // Apply appearance settings to DOM
   const applyAppearanceSettings = (appearance: Settings['appearance']) => {
@@ -200,7 +211,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     
     // Handle theme change specially
     if (key === 'theme') {
-      setTheme(value as "light" | "dark" | "system");
+      applyTheme(value as "light" | "dark" | "system");
     }
     
     saveSettings(newSettings);
@@ -224,7 +235,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const resetSettings = () => {
     if (window.confirm("This will reset all settings to defaults. Are you sure?")) {
       setSettings(defaultSettings);
-      setTheme(defaultSettings.theme);
+      applyTheme(defaultSettings.theme);
       applyAppearanceSettings(defaultSettings.appearance);
       localStorage.removeItem('phishEyeSettings:v2');
       toast({
@@ -271,7 +282,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       if (data.settings && data.version === "2.0") {
         const mergedSettings = { ...defaultSettings, ...data.settings };
         setSettings(mergedSettings);
-        setTheme(mergedSettings.theme);
+        applyTheme(mergedSettings.theme);
         applyAppearanceSettings(mergedSettings.appearance);
         saveSettings(mergedSettings);
         

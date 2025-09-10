@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useTheme } from "@/hooks/use-theme";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,7 +42,6 @@ import {
 
 
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
   const { settings, updateSetting, updateNestedSetting, resetSettings, exportSettings, isLoaded } = useSettings();
   const [historyCount, setHistoryCount] = useState(0);
   const [storageSize, setStorageSize] = useState("0");
@@ -65,7 +63,6 @@ export default function SettingsPage() {
   };
 
   const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme as "light" | "dark" | "system");
     updateSetting('theme', newTheme as "light" | "dark" | "system");
   };
 
@@ -87,7 +84,6 @@ export default function SettingsPage() {
       localStorage.removeItem('phishEyeSettings:v2');
       localStorage.removeItem('phishEyeTheme');
       resetSettings();
-      setTheme("dark");
       updateStorageInfo();
     }
   };

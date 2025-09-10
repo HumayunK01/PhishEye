@@ -3,14 +3,13 @@ import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useTheme } from "@/hooks/use-theme";
+import { useSettings } from "@/contexts/SettingsContext";
 import { ShieldCheck, Sun, Moon, Menu, X } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/analyzer", label: "Analyzer" },
   { href: "/history", label: "History" },
-  { href: "/monitoring", label: "Monitoring" },
   { href: "/documentation", label: "Documentation" },
   { href: "/settings", label: "Settings" },
 ];
@@ -18,10 +17,10 @@ const navItems = [
 export default function Navigation() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { settings, updateSetting } = useSettings();
 
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    updateSetting('theme', settings.theme === "dark" ? "light" : "dark");
   };
 
   const isActiveRoute = (href: string) => {
@@ -75,7 +74,7 @@ export default function Navigation() {
               data-testid="button-theme-toggle"
             >
               <AnimatePresence mode="wait">
-                {theme === "dark" ? (
+                {settings.theme === "dark" ? (
                   <motion.div
                     key="sun"
                     initial={{ rotate: -90, opacity: 0 }}
